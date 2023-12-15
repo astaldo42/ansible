@@ -1,0 +1,2 @@
+[hosts]
+158.160.101.183 ansible_connection=ssh ansible_user=ansible ansible_become=true ansible_ssh_private_key_file=~/.ssh/id_ed25519

@@ -1,0 +1,48 @@
+---
+- name: Manage SSH Certificate Authority and User Keys
+  hosts: hosts
+  become: yes
+
+  tasks:
+    - name: Check if SSH CA private key exists
+      stat:
+        path: "/etc/ssh/ca_keys/ssh_ca_key"
+      register: ca_key
+
+    - name: Create SSH CA key pair if they don't exist
+      block:
+        - name: Ensure CA key directory exists
+          file:
+            path: "/etc/ssh/ca_keys"
+            state: directory
+            mode: '0700'
+
+        - name: Generate SSH CA private key
+          command: ssh-keygen -t rsa -b 4096 -f /etc/ssh/ca_keys/ssh_ca_key -N ""
+      when: not ca_key.stat.exists
+
+    - name: Create a new user
+      user:
+        name: "{{ user_name }}"
+        comment: "SSH User"
+        create_home: yes
+
+    - name: Generate SSH key for user
+      user:
+        name: "{{ user_name }}"
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: ".ssh/id_rsa"
+
+    - name: Update sshd_config to trust CA
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: 'TrustedUserCAKeys /etc/ssh/ca_keys/ssh_ca_key.pub'
+        create: yes
+      notify: Restart SSH
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: ssh
+        state: restarted
