@@ -1,0 +1,31 @@
+---
+- name: ssh CA Setup
+  hosts: hosts
+  become: yes
+  tasks:
+    - name: Create ssh CA directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0700'
+      loop:
+        - /etc/ssh/ca_keys
+        - /etc/ssh/trusted_ca_keys
+
+    - name: Generate ssh CA private key
+      command: ssh-keygen -t ed25519 -f /etc/ssh/ca_keys/ssh_ca_key -N ""
+      args:
+        creates: /etc/ssh/ca_keys/ssh_ca_key
+
+    - name: Update sshd_config to trust CA
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: 'TrustedUserCAKeys /etc/ssh/trusted_ca_keys/ssh_ca_key.pub'
+        create: yes
+      notify: Restart sshd
+
+  handlers:
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted

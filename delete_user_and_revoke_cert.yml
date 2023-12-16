@@ -1,0 +1,35 @@
+---
+- name: User Deletion and SSH Certificate Revocation
+  hosts: hosts
+  become: yes
+  tasks:
+    - name: Fetch user's public key for revocation
+      slurp:
+        src: "/home/{{ user_name }}/.ssh/id_ed25519.pub"
+      register: user_ssh_public_key
+      become: yes
+
+    # slurp module encodes the content in base64, so need to be decoded
+    - name: Decode the SSH public key
+      set_fact:
+        decoded_key: "{{ user_ssh_public_key.content | b64decode }}"
+
+    - name: Add user's public key to RevokedKeys
+      lineinfile:
+        path: /etc/ssh/revoked_keys
+        line: "{{ decoded_key }}"
+        create: yes
+      become: yes
+      notify: Restart SSHD
+
+    - name: Delete user and its home directory
+      user:
+        name: "{{ user_name }}"
+        state: absent
+        remove: yes
+
+  handlers:
+    - name: Restart SSHD
+      service:
+        name: sshd
+        state: restarted
