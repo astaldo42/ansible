@@ -20,6 +20,13 @@
         line: "{{ decoded_key }}"
         create: yes
       become: yes
+
+    - name: Update sshd_config to RevokedKeys
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: 'RevokedKeys /etc/ssh/revoked_keys'
+        create: yes
+      become: yes
       notify: Restart SSHD
 
     - name: Delete user and its home directory
