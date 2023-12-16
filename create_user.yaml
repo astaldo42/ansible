@@ -3,6 +3,12 @@
   hosts: hosts
   become: yes
   tasks:
+    - name: Create a new user
+      user:
+        name: "{{ user_name }}"
+        comment: "SSH User"
+        create_home: yes
+
     - name: Generate ssh key for user
       user:
         name: "{{ user_name }}"
